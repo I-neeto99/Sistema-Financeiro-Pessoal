@@ -15,6 +15,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 
 public class Transacao {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -30,4 +31,8 @@ public class Transacao {
 
     @Column(nullable = false)
     private LocalDate data;
+
+    @ManyToOne
+    @JoinColumn(name = "categoria_id")
+    private Categoria categoria;
 }
