@@ -1,35 +1,50 @@
 package com.italo.financeiro.service;
 
+import com.italo.financeiro.exception.RecursoNaoEncontradoException;
+import com.italo.financeiro.model.Categoria;
 import com.italo.financeiro.model.Transacao;
+import com.italo.financeiro.repository.CategoriaRepository;
 import com.italo.financeiro.repository.TransacaoRepository;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Service
 public class TransacaoService {
-    // caixa vazia
-    private final TransacaoRepository repository;
 
-    // única vez que preenche
-    public TransacaoService(TransacaoRepository repository) {
-        this.repository = repository;}
+    private final TransacaoRepository transacaoRepository;
+    private final CategoriaRepository categoriaRepository;
 
+    public TransacaoService(TransacaoRepository transacaoRepository, CategoriaRepository categoriaRepository) {
+        this.transacaoRepository = transacaoRepository;
+        this.categoriaRepository = categoriaRepository;
+    }
 
     public Transacao salvar(Transacao transacao) {
-        if (transacao.getValor().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("O valor da transação deve ser maior que zero");
-        }
+        // id é gerado pelo banco; ignora qualquer id enviado pelo cliente
+        transacao.setId(null);
 
-        return repository.save(transacao);
+        Categoria categoriaInformada = transacao.getCategoria();
+        if (categoriaInformada != null) {
+            Long categoriaId = categoriaInformada.getId();
+            if (categoriaId == null) {
+                throw new IllegalArgumentException("Informe o id da categoria");
+            }
+            Categoria categoria = categoriaRepository.findById(categoriaId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Categoria não encontrada: " + categoriaId));
+            transacao.setCategoria(categoria);
+        }
+        return transacaoRepository.save(transacao);
     }
+
     public List<Transacao> listarTodas() {
-            return repository.findAll();
-        }
+        return transacaoRepository.findAll();
+    }
+
     public void deletar(Long id) {
-        repository.deleteById(id);
+        if (!transacaoRepository.existsById(id)) {
+            throw new RecursoNaoEncontradoException("Transação não encontrada: " + id);
+        }
+        transacaoRepository.deleteById(id);
     }
-    }
-
-
+}
